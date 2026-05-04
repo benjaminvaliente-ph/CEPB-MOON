@@ -26,18 +26,30 @@ class MiVentana(QMainWindow):
         self.cerrarSideBar.clicked.connect(lambda: self.sideBar.setMaximumWidth(0))
         
     def Buscar(self):
-        item = self.scrollLayout.takeAt(self.scrollLayout.count() - 1)
-        del item
-        txt=self.txtBuscador.text() 
-        if txt in self.paises:
-                btn=QPushButton(f"{txt}")
-                btn.setMinimumSize(100, 100)
-                btn.setMaximumSize(100, 100)
-                btn.setStyleSheet('font: 10pt "Bahnschrift SemiBold"; text-align: left; background-color: rgb(255, 255, 255); border-radius: 20px; padding-left: 20px; margin-bottom: 3px;')
-                btn.clicked.connect(lambda _, btn=btn: self.QuitarPais(btn))            
+        txt = self.txtBuscador.text().strip()
+        if not txt or txt not in self.paises:
+            return
+        for i in range(self.scrollLayout.count()):
+            item = self.scrollLayout.itemAt(i)
+            widget = item.widget()
+            if isinstance(widget, QPushButton) and widget.text() == txt:
                 self.txtBuscador.clear()
-                self.scrollLayout.addWidget(btn, alignment=Qt.AlignTop)
-                self.scrollLayout.addStretch()
+                return
+        
+        last_index = self.scrollLayout.count() - 1
+        if last_index >= 0:
+            item = self.scrollLayout.itemAt(last_index)
+            if item.spacerItem():
+                self.scrollLayout.takeAt(last_index)
+
+        btn = QPushButton(txt)
+        btn.setMinimumSize(100, 100)
+        btn.setMaximumSize(100, 100)
+        btn.setStyleSheet('font: 10pt "Bahnschrift SemiBold"; text-align: left; background-color: rgb(255, 255, 255); border-radius: 20px; padding-left: 20px; margin-bottom: 3px;')
+        btn.clicked.connect(lambda _, b=btn: self.QuitarPais(b))
+        self.txtBuscador.clear()
+        self.scrollLayout.addWidget(btn, alignment=Qt.AlignTop)
+        self.scrollLayout.addStretch()
                 
     def QuitarPais(self, pais):
         txt = str(pais.text())
