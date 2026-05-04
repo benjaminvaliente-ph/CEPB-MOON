@@ -25,6 +25,8 @@ class MiVentana(QMainWindow):
         self.btn4.clicked.connect(lambda _, c=self.Historial: self.Expandir(c))
         self.cerrarSideBar.clicked.connect(lambda: self.sideBar.setMaximumWidth(0))
         
+        self.lista.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+
     def Buscar(self):
         txt = self.txtBuscador.text().strip()
         if not txt or txt not in self.paises:
@@ -74,7 +76,7 @@ class MiVentana(QMainWindow):
         self.Configuraciones_2.setMaximumHeight(0)
         self.Historial.setMaximumHeight(0)
         self.Cronometro_2.setMaximumHeight(0)
-        nombre.setMaximumHeight(400)
+        nombre.setMaximumHeight(16777215)
     
 app= QApplication(sys.argv)
 ventana= MiVentana()

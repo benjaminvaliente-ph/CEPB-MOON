@@ -230,7 +230,7 @@ border-radius: 15px</string>
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>1064</width>
+            <width>664</width>
             <height>472</height>
            </rect>
           </property>
@@ -275,13 +275,19 @@ color: rgb(173, 0, 40);</string>
       </property>
       <property name="maximumSize">
        <size>
-        <width>0</width>
+        <width>400</width>
         <height>16777215</height>
        </size>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
         <widget class="QWidget" name="Configuraciones_2" native="true">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>0</height>
+          </size>
+         </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <item>
            <widget class="QWidget" name="horizontalWidget" native="true">
@@ -346,32 +352,59 @@ color: rgb(173, 0, 40);</string>
          </property>
          <layout class="QVBoxLayout" name="HistorialPaises">
           <item>
-           <widget class="QListWidget" name="lista">
-            <item>
+           <widget class="QLabel" name="label_5">
+            <property name="styleSheet">
+             <string notr="true">font: 63 15pt &quot;Bahnschrift SemiBold&quot;;</string>
+            </property>
+            <property name="text">
+             <string>Historial de intervencion</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTableWidget" name="lista">
+            <property name="showGrid">
+             <bool>false</bool>
+            </property>
+            <attribute name="horizontalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="horizontalHeaderCascadingSectionResizes">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="horizontalHeaderDefaultSectionSize">
+             <number>77</number>
+            </attribute>
+            <attribute name="horizontalHeaderStretchLastSection">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="verticalHeaderHighlightSections">
+             <bool>true</bool>
+            </attribute>
+            <row>
              <property name="text">
-              <string>Este va a ser el historial de paises !!</string>
+              <string>New Row</string>
              </property>
-            </item>
-            <item>
+            </row>
+            <column>
              <property name="text">
-              <string>Ecuador</string>
+              <string>Pais</string>
              </property>
-            </item>
-            <item>
+            </column>
+            <column>
              <property name="text">
-              <string>Panama</string>
+              <string>Cantidad</string>
              </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Katseye</string>
+             <property name="textAlignment">
+              <set>AlignTrailing|AlignVCenter</set>
              </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Manon</string>
-             </property>
-            </item>
+            </column>
            </widget>
           </item>
          </layout>
@@ -379,12 +412,6 @@ color: rgb(173, 0, 40);</string>
        </item>
        <item>
         <widget class="QWidget" name="Cronometro_2" native="true">
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>0</height>
-          </size>
-         </property>
          <layout class="QVBoxLayout" name="Cronometro">
           <item>
            <widget class="QDial" name="dial">
@@ -397,14 +424,62 @@ color: rgb(173, 0, 40);</string>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label">
+           <widget class="QLabel" name="label_7">
+            <property name="styleSheet">
+             <string notr="true">font: 50pt &quot;Bahnschrift SemiBold&quot;;</string>
+            </property>
             <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;tiempo tiempo : mimimimimi : seg seg&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>00:00:00</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignCenter</set>
+             <set>Qt::AlignHCenter|Qt::AlignTop</set>
+            </property>
+            <property name="margin">
+             <number>30</number>
             </property>
            </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_5">
+            <property name="topMargin">
+             <number>5</number>
+            </property>
+            <item>
+             <widget class="QSpinBox" name="spinBox">
+              <property name="frame">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label">
+              <property name="text">
+               <string>:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinBox_2">
+              <property name="frame">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_6">
+              <property name="text">
+               <string>:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinBox_3">
+              <property name="frame">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
           <item>
            <widget class="QWidget" name="horizontalWidget" native="true">
