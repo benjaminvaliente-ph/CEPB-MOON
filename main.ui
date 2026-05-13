@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1108</width>
-    <height>633</height>
+    <height>665</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -231,7 +231,7 @@ border-radius: 15px</string>
             <x>0</x>
             <y>0</y>
             <width>664</width>
-            <height>472</height>
+            <height>504</height>
            </rect>
           </property>
          </widget>
@@ -344,12 +344,6 @@ color: rgb(173, 0, 40);</string>
        </item>
        <item>
         <widget class="QWidget" name="Historial" native="true">
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>0</height>
-          </size>
-         </property>
          <layout class="QVBoxLayout" name="HistorialPaises">
           <item>
            <widget class="QLabel" name="label_5">
@@ -366,6 +360,9 @@ color: rgb(173, 0, 40);</string>
           </item>
           <item>
            <widget class="QTableWidget" name="lista">
+            <property name="styleSheet">
+             <string notr="true">font: 50 15pt &quot;Bahnschrift Light&quot;;</string>
+            </property>
             <property name="showGrid">
              <bool>false</bool>
             </property>
@@ -387,11 +384,6 @@ color: rgb(173, 0, 40);</string>
             <attribute name="verticalHeaderHighlightSections">
              <bool>true</bool>
             </attribute>
-            <row>
-             <property name="text">
-              <string>New Row</string>
-             </property>
-            </row>
             <column>
              <property name="text">
               <string>Pais</string>
@@ -412,6 +404,12 @@ color: rgb(173, 0, 40);</string>
        </item>
        <item>
         <widget class="QWidget" name="Cronometro_2" native="true">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>0</height>
+          </size>
+         </property>
          <layout class="QVBoxLayout" name="Cronometro">
           <item>
            <widget class="QDial" name="dial">
