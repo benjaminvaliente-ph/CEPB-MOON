@@ -7,13 +7,14 @@ import sys
 class MiVentana(QMainWindow):
     def __init__(self):
         super().__init__()
+        loadUi("main.ui", self)
+
         self.conn = sqlite3.connect("db_CEPBMOON.db")
         self.conn.row_factory = sqlite3.Row
         self.cursor = self.conn.cursor()
-        self.cursor.execute("SELECT pais FROM tabdelegaciones")
+        self.cursor.execute("SELECT pais FROM tabdelegaciones WHERE enforo = 2")
 
         self.paises = [fila["pais"] for fila in self.cursor.fetchall()]
-        loadUi("main.ui", self)
         completer = QCompleter(self.paises)
         completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.txtBuscador.setCompleter(completer)
@@ -26,11 +27,17 @@ class MiVentana(QMainWindow):
         self.btn2.clicked.connect(lambda _, c=self.Anotaciones_2: self.Expandir(c))
         self.btn3.clicked.connect(lambda _, c=self.Cronometro_2: self.Expandir(c))
         self.btn4.clicked.connect(lambda _, c=self.Historial: self.Expandir(c))
+        self.btn_verPaises.clicked.connect(lambda _, c=self.listaPaises_2: self.Expandir(c))
+        
         self.cerrarSideBar.clicked.connect(lambda: self.sideBar.setMaximumWidth(0))
         
-        self.lista.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.listaForo.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.listaHistorial.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.PaisesEnForo()
 
     def Buscar(self):
+
+
         txt = self.txtBuscador.text().strip()
         if not txt or txt not in self.paises:
             return
@@ -71,10 +78,10 @@ class MiVentana(QMainWindow):
                 self.cursor.execute("SELECT turnos FROM tabdelegaciones WHERE pais = ?",(nompais,))
                 turnos= self.cursor.fetchone()["turnos"]
 
-                row_position = self.lista.rowCount()
-                self.lista.insertRow(row_position)
-                self.lista.setItem(row_position, 0, QTableWidgetItem(nompais))
-                self.lista.setItem(row_position, 1, QTableWidgetItem(str(turnos)))
+                row_position = self.listaHistorial.rowCount()
+                self.listaHistorial.insertRow(row_position)
+                self.listaHistorial.setItem(row_position, 0, QTableWidgetItem(nompais))
+                self.listaHistorial.setItem(row_position, 1, QTableWidgetItem(str(turnos)))
 
         def Cronometrar(pais):
             self.time = self.time.addSecs(-1)
@@ -93,12 +100,47 @@ class MiVentana(QMainWindow):
         self.timer.timeout.connect(lambda: Cronometrar(txt))
         Registrar(txt)
 
+    def PaisesEnForo(self):
+        def PaisEnForo(state, pais):
+            self.cursor.execute("""
+                UPDATE tabdelegaciones
+                SET enforo = ?
+                WHERE pais = ?
+            """, (state, pais))
+            self.conn.commit()
+
+        self.cursor.execute("SELECT pais, enforo FROM tabdelegaciones")
+
+        for fila in self.cursor.fetchall():
+            pais = fila[0]
+
+            btn_paisEnForo = QCheckBox()
+            btn_paisEnForo.setChecked(bool(fila["enforo"]))
+            btn_paisEnForo.stateChanged.connect(lambda state, p=pais: PaisEnForo(state, p))
+            
+            row_position = self.listaForo.rowCount()
+            self.listaForo.insertRow(row_position)
+            self.listaForo.setItem(row_position, 0, QTableWidgetItem(fila["pais"]))
+            self.listaForo.setCellWidget(row_position, 1, btn_paisEnForo)
+        
+        self.cursor.execute("SELECT pais FROM tabdelegaciones WHERE enforo = 2")
+        paises = [fila["pais"] for fila in self.cursor.fetchall()]
+
+        if not hasattr(self, "completer"):
+            self.completer = QCompleter()
+            self.completer.setCaseSensitivity(Qt.CaseInsensitive)
+            self.txtBuscador.setCompleter(self.completer)
+
+        from PyQt5.QtCore import QStringListModel
+        self.completer.setModel(QStringListModel(paises))
+
     def Expandir(self, nombre):
         self.sideBar.setMaximumWidth(400)
         self.Anotaciones_2.setMaximumHeight(0)
         self.Configuraciones_2.setMaximumHeight(0)
         self.Historial.setMaximumHeight(0)
         self.Cronometro_2.setMaximumHeight(0)
+        self.listaPaises_2.setMaximumHeight(0)
         nombre.setMaximumHeight(16777215)
     
     def closeEvent(self, a0):

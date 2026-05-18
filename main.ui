@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1108</width>
+    <width>1084</width>
     <height>665</height>
    </rect>
   </property>
@@ -63,7 +63,7 @@ padding-left:5px;</string>
             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
            </property>
            <property name="placeholderText">
-            <string>Buscar un país</string>
+            <string>Buscar una delegación</string>
            </property>
           </widget>
          </item>
@@ -230,7 +230,7 @@ border-radius: 15px</string>
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>664</width>
+            <width>640</width>
             <height>504</height>
            </rect>
           </property>
@@ -328,14 +328,14 @@ color: rgb(173, 0, 40);</string>
           <item>
            <widget class="QPushButton" name="pushButton_4">
             <property name="text">
-             <string>PushButton</string>
+             <string>Conectar con mesa</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_3">
+           <widget class="QPushButton" name="btn_verPaises">
             <property name="text">
-             <string>PushButton</string>
+             <string>Ver lista de paises</string>
             </property>
            </widget>
           </item>
@@ -343,7 +343,134 @@ color: rgb(173, 0, 40);</string>
         </widget>
        </item>
        <item>
+        <widget class="QWidget" name="listaPaises_2" native="true">
+         <layout class="QVBoxLayout" name="listaPaises">
+          <item>
+           <widget class="QLabel" name="label_8">
+            <property name="styleSheet">
+             <string notr="true">font: 63 15pt &quot;Bahnschrift SemiBold&quot;;</string>
+            </property>
+            <property name="text">
+             <string>Delegaciones en el foro</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QWidget" name="horizontalWidget" native="true">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>20</height>
+             </size>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_6">
+             <item>
+              <widget class="QPushButton" name="pushButton_3">
+               <property name="minimumSize">
+                <size>
+                 <width>300</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(200, 200, 200);
+border-radius: 15px;
+border: 1px solid white;
+margin-left: 5px;
+padding-left:5px;</string>
+               </property>
+               <property name="text">
+                <string>PushButton</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_6">
+               <property name="minimumSize">
+                <size>
+                 <width>30</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>35</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(200, 200, 200);
+border-radius: 15px;
+border: 1px solid white;
+margin-left: 5px;
+padding-left:5px;</string>
+               </property>
+               <property name="text">
+                <string>PushButton</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTableWidget" name="listaForo">
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">font: 50 15pt &quot;Bahnschrift Light&quot;;</string>
+            </property>
+            <property name="editTriggers">
+             <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::NoSelection</enum>
+            </property>
+            <property name="showGrid">
+             <bool>false</bool>
+            </property>
+            <attribute name="horizontalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="horizontalHeaderDefaultSectionSize">
+             <number>77</number>
+            </attribute>
+            <attribute name="horizontalHeaderMinimumSectionSize">
+             <number>51</number>
+            </attribute>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="verticalHeaderMinimumSectionSize">
+             <number>32</number>
+            </attribute>
+            <column>
+             <property name="text">
+              <string>pais</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>enForo</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <widget class="QWidget" name="Historial" native="true">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>0</height>
+          </size>
+         </property>
          <layout class="QVBoxLayout" name="HistorialPaises">
           <item>
            <widget class="QLabel" name="label_5">
@@ -359,9 +486,18 @@ color: rgb(173, 0, 40);</string>
            </widget>
           </item>
           <item>
-           <widget class="QTableWidget" name="lista">
+           <widget class="QTableWidget" name="listaHistorial">
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
+            </property>
             <property name="styleSheet">
              <string notr="true">font: 50 15pt &quot;Bahnschrift Light&quot;;</string>
+            </property>
+            <property name="editTriggers">
+             <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::NoSelection</enum>
             </property>
             <property name="showGrid">
              <bool>false</bool>
@@ -555,7 +691,7 @@ p, li { white-space: pre-wrap; }
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1108</width>
+     <width>1084</width>
      <height>21</height>
     </rect>
    </property>
