@@ -15,9 +15,9 @@ class MiVentana(QMainWindow):
         self.cursor.execute("SELECT pais FROM tabdelegaciones WHERE enforo = 2")
 
         self.paises = [fila["pais"] for fila in self.cursor.fetchall()]
-        completer = QCompleter(self.paises)
-        completer.setCaseSensitivity(Qt.CaseInsensitive)
-        self.txtBuscador.setCompleter(completer)
+        self.completer = QCompleter(self.paises)
+        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.txtBuscador.setCompleter(self.completer)
         self.scrollLayout = QHBoxLayout(self.scrollAreaWidgetContents)
         self.scrollAreaWidgetContents.setLayout(self.scrollLayout)
         self.txtBuscador.returnPressed.connect(self.Buscar)
@@ -36,7 +36,6 @@ class MiVentana(QMainWindow):
         self.PaisesEnForo()
 
     def Buscar(self):
-
 
         txt = self.txtBuscador.text().strip()
         if not txt or txt not in self.paises:
@@ -100,6 +99,15 @@ class MiVentana(QMainWindow):
         self.timer.timeout.connect(lambda: Cronometrar(txt))
         Registrar(txt)
 
+    def Buscador(self):
+        self.cursor.execute("SELECT pais FROM tabdelegaciones WHERE enforo = 2")
+        paises = [fila["pais"] for fila in self.cursor.fetchall()]
+        modelo = QStringListModel(paises)
+        self.completer.setModel(modelo)
+        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.txtBuscador.setCompleter(self.completer)
+        self.paises = paises
+
     def PaisesEnForo(self):
         def PaisEnForo(state, pais):
             self.cursor.execute("""
@@ -108,9 +116,9 @@ class MiVentana(QMainWindow):
                 WHERE pais = ?
             """, (state, pais))
             self.conn.commit()
+            self.Buscador()
 
         self.cursor.execute("SELECT pais, enforo FROM tabdelegaciones")
-
         for fila in self.cursor.fetchall():
             pais = fila[0]
 
@@ -122,17 +130,7 @@ class MiVentana(QMainWindow):
             self.listaForo.insertRow(row_position)
             self.listaForo.setItem(row_position, 0, QTableWidgetItem(fila["pais"]))
             self.listaForo.setCellWidget(row_position, 1, btn_paisEnForo)
-        
-        self.cursor.execute("SELECT pais FROM tabdelegaciones WHERE enforo = 2")
-        paises = [fila["pais"] for fila in self.cursor.fetchall()]
-
-        if not hasattr(self, "completer"):
-            self.completer = QCompleter()
-            self.completer.setCaseSensitivity(Qt.CaseInsensitive)
-            self.txtBuscador.setCompleter(self.completer)
-
-        from PyQt5.QtCore import QStringListModel
-        self.completer.setModel(QStringListModel(paises))
+        self.Buscador()
 
     def Expandir(self, nombre):
         self.sideBar.setMaximumWidth(400)
