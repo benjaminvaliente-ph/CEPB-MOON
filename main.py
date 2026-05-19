@@ -109,6 +109,7 @@ class MiVentana(QMainWindow):
         self.paises = paises
 
     def PaisesEnForo(self):
+
         def PaisEnForo(state, pais):
             self.cursor.execute("""
                 UPDATE tabdelegaciones
@@ -118,19 +119,22 @@ class MiVentana(QMainWindow):
             self.conn.commit()
             self.Buscador()
 
-        self.cursor.execute("SELECT pais, enforo FROM tabdelegaciones")
-        for fila in self.cursor.fetchall():
-            pais = fila[0]
+        def BuscarPais(n):
+            self.listaForo.setRowCount(0)
 
-            btn_paisEnForo = QCheckBox()
-            btn_paisEnForo.setChecked(bool(fila["enforo"]))
-            btn_paisEnForo.stateChanged.connect(lambda state, p=pais: PaisEnForo(state, p))
-            
-            row_position = self.listaForo.rowCount()
-            self.listaForo.insertRow(row_position)
-            self.listaForo.setItem(row_position, 0, QTableWidgetItem(fila["pais"]))
-            self.listaForo.setCellWidget(row_position, 1, btn_paisEnForo)
-        self.Buscador()
+            self.cursor.execute("""SELECT * FROM tabdelegaciones WHERE pais LIKE ?""", (f"{n}%",))
+            for fila in self.cursor.fetchall():
+                pais = fila["pais"]
+                btn_paisEnForo = QCheckBox()
+                btn_paisEnForo.setChecked(bool(fila["enforo"]))
+                btn_paisEnForo.stateChanged.connect(lambda state, p=pais: PaisEnForo(state, p))
+
+                row_position = self.listaForo.rowCount()
+                self.listaForo.insertRow(row_position)
+                self.listaForo.setItem(row_position,0,QTableWidgetItem(fila["pais"]))
+                self.listaForo.setCellWidget(row_position,1,btn_paisEnForo)
+        BuscarPais("")
+        self.txtBuscarEnForo.textChanged.connect(BuscarPais)
 
     def Expandir(self, nombre):
         self.sideBar.setMaximumWidth(400)
