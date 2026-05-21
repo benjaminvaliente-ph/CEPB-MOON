@@ -34,8 +34,9 @@ class MiVentana(QMainWindow):
         self.listaForo.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.listaHistorial.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.PaisesEnForo()
+        self.Cronometro()
 
-    def Buscar(self):
+    def Buscar(self):                #Para buscar un pais y que se añada a la lista de oradores
 
         txt = self.txtBuscador.text().strip()
         if not txt or txt not in self.paises:
@@ -62,7 +63,7 @@ class MiVentana(QMainWindow):
         self.scrollLayout.addWidget(btn, alignment=Qt.AlignTop)
         self.scrollLayout.addStretch()
                 
-    def QuitarPais(self, pais):
+    def QuitarPais(self, pais):      #Afecta el *Historial*. Quitar un pais de la lista de oradores, registrar y cronometrarlo 
         def Registrar(nompais):
                 conn = sqlite3.connect("db_CEPBMOON.db")
                 cursor = conn.cursor()
@@ -99,7 +100,7 @@ class MiVentana(QMainWindow):
         self.timer.timeout.connect(lambda: Cronometrar(txt))
         Registrar(txt)
 
-    def Buscador(self):
+    def Buscador(self):              #Actualizar el buscador cuando se cambia los paises en un foro
         self.cursor.execute("SELECT pais FROM tabdelegaciones WHERE enforo = 2")
         paises = [fila["pais"] for fila in self.cursor.fetchall()]
         modelo = QStringListModel(paises)
@@ -108,8 +109,7 @@ class MiVentana(QMainWindow):
         self.txtBuscador.setCompleter(self.completer)
         self.paises = paises
 
-    def PaisesEnForo(self):
-
+    def PaisesEnForo(self):          #Actualizar que paises se cargarán, cargar la lista y checkboxes para seleccionar o no las delegaciones
         def PaisEnForo(state, pais):
             self.cursor.execute("""
                 UPDATE tabdelegaciones
@@ -136,7 +136,31 @@ class MiVentana(QMainWindow):
         BuscarPais("")
         self.txtBuscarEnForo.textChanged.connect(BuscarPais)
 
-    def Expandir(self, nombre):
+    def Cronometro(self):            #Afecta el *Cronometro*. 
+        def MoverReloj(fecha):
+            self.Cron.setSliderPosition(30+int(fecha.hour() * 60 + fecha.minute()))
+
+        def IniciarCronometro(fecha):
+            self.timerCron = QTimer()
+            self.tiempoCron = QTime(fecha)
+
+            def Cronometrar():
+                self.tiempoCron = self.tiempoCron.addSecs(-1)
+                self.txtCron.setTime(self.tiempoCron)
+                MoverReloj(self.tiempoCron)
+                if self.tiempoCron == QTime(0, 0, 0):
+                    self.timerCron.stop()
+                    self.txtCron.setReadOnly(False)
+
+            self.txtCron.setReadOnly(True)
+            self.timerCron.timeout.connect(Cronometrar)
+            self.timerCron.start(1000)
+
+        self.txtCron.timeChanged.connect(MoverReloj)
+        self.btnComenzarCron.clicked.connect(lambda:(IniciarCronometro(self.txtCron.time()), MoverReloj(self.txtCron.time())))
+        self.btnPausarCron.clicked.connect(lambda: (self.txtCron.setReadOnly(True if not self.txtCron.isReadOnly() else False), self.timerCron.stop()))
+
+    def Expandir(self, nombre):      #Expandir la barra al costado, comprimir las demas barras
         self.sideBar.setMaximumWidth(400)
         self.Anotaciones_2.setMaximumHeight(0)
         self.Configuraciones_2.setMaximumHeight(0)
@@ -145,7 +169,7 @@ class MiVentana(QMainWindow):
         self.listaPaises_2.setMaximumHeight(0)
         nombre.setMaximumHeight(16777215)
     
-    def closeEvent(self, a0):
+    def closeEvent(self, a0):        #Reiniciar los turnos de las delegaciones al cerrar el programa, crear un pdf que registra lo que sucedió en la sesión
         self.cursor.execute("""
             UPDATE tabdelegaciones
             SET turnos = 0""")
