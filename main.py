@@ -28,16 +28,18 @@ class MiVentana(QMainWindow):
         self.btn3.clicked.connect(lambda _, c=self.Cronometro_2: self.Expandir(c))
         self.btn4.clicked.connect(lambda _, c=self.Historial: self.Expandir(c))
         self.btn_verPaises.clicked.connect(lambda _, c=self.listaPaises_2: self.Expandir(c))
+        self.btn_nombrarPaises.clicked.connect(lambda _, c=self.Delegados_3: (self.Expandir(c), self.DelegacionesEnForo(self.Delegados)))
+
         
         self.cerrarSideBar.clicked.connect(lambda: self.sideBar.setMaximumWidth(0))
         
         self.listaForo.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.listaHistorial.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.PaisesEnForo()
+        self.DelegacionesEnForo(self.Delegados)
         self.Cronometro()
 
     def Buscar(self):                #Para buscar un pais y que se añada a la lista de oradores
-
         txt = self.txtBuscador.text().strip()
         if not txt or txt not in self.paises:
             return
@@ -136,6 +138,34 @@ class MiVentana(QMainWindow):
         BuscarPais("")
         self.txtBuscarEnForo.textChanged.connect(BuscarPais)
 
+    def DelegacionesEnForo(self, layout):
+        while layout.layout().count():
+            item = layout.layout().takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                self.DelegacionesEnForo(item.layout())
+                                        
+        self.cursor.execute("""SELECT * FROM tabdelegaciones WHERE enforo = 2""")
+        for delegacion in self.cursor.fetchall():
+            nomPais = QLabel(str(delegacion["pais"]))
+            nomPais.setStyleSheet('font: 12pt "Bahnschrift SemiBold"; text-align: center;')
+            nomPais.setAlignment(Qt.AlignCenter)
+
+            d1 = QLineEdit()
+            d1.setStyleSheet('background-color: rgb(230, 230, 230);border-radius: 5px;padding:5px;font: 12pt "Bahnschrift SemiBold"; margin-bottom: 40px;')
+            # d1.textChanged.connect()
+            d2 = QLineEdit()
+            d2.setStyleSheet('background-color: rgb(230, 230, 230);border-radius: 5px;padding:5px;font: 12pt "Bahnschrift SemiBold"; margin-bottom: 40px;')
+            # d2.textChanged.connect()
+            hLayout = QHBoxLayout()
+            hLayout.addWidget(d1)
+            hLayout.addWidget(d2)
+
+            layout.layout().addWidget(nomPais)
+            layout.layout().addLayout(hLayout)   
+        layout.layout().addStretch()
+
     def Cronometro(self):            #Afecta el *Cronometro*. 
         def MoverReloj(fecha):
             self.Cron.setSliderPosition(30+int(fecha.hour() * 60 + fecha.minute()))
@@ -167,6 +197,7 @@ class MiVentana(QMainWindow):
         self.Historial.setMaximumHeight(0)
         self.Cronometro_2.setMaximumHeight(0)
         self.listaPaises_2.setMaximumHeight(0)
+        self.Delegados_3.setMaximumHeight(0)
         nombre.setMaximumHeight(16777215)
     
     def closeEvent(self, a0):        #Reiniciar los turnos de las delegaciones al cerrar el programa, crear un pdf que registra lo que sucedió en la sesión
