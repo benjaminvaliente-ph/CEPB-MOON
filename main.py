@@ -128,43 +128,56 @@ class MiVentana(QMainWindow):
             for fila in self.cursor.fetchall():
                 pais = fila["pais"]
                 btn_paisEnForo = QCheckBox()
+                btn_paisEnForo.setText(fila["pais"])
                 btn_paisEnForo.setChecked(bool(fila["enforo"]))
+                btn_paisEnForo.setLayoutDirection(Qt.RightToLeft)
+                btn_paisEnForo.setCursor(Qt.PointingHandCursor)
                 btn_paisEnForo.stateChanged.connect(lambda state, p=pais: PaisEnForo(state, p))
 
                 row_position = self.listaForo.rowCount()
                 self.listaForo.insertRow(row_position)
-                self.listaForo.setItem(row_position,0,QTableWidgetItem(fila["pais"]))
-                self.listaForo.setCellWidget(row_position,1,btn_paisEnForo)
+                self.listaForo.setCellWidget(row_position,0,btn_paisEnForo)
         BuscarPais("")
         self.txtBuscarEnForo.textChanged.connect(BuscarPais)
 
-    def DelegacionesEnForo(self, layout):
+    def DelegacionesEnForo(self, layout): #Nombra a los delegados en una delegación
         while layout.layout().count():
             item = layout.layout().takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
             elif item.layout():
                 self.DelegacionesEnForo(item.layout())
-                                        
-        self.cursor.execute("""SELECT * FROM tabdelegaciones WHERE enforo = 2""")
-        for delegacion in self.cursor.fetchall():
+
+        self.cursor.execute("""SELECT idPais, pais FROM tabdelegaciones WHERE enforo = 2""")
+        paisesEnForo=self.cursor.fetchall()
+        hLayout = QHBoxLayout()
+        for delegacion in paisesEnForo:
             nomPais = QLabel(str(delegacion["pais"]))
             nomPais.setStyleSheet('font: 12pt "Bahnschrift SemiBold"; text-align: center;')
             nomPais.setAlignment(Qt.AlignCenter)
-
-            d1 = QLineEdit()
-            d1.setStyleSheet('background-color: rgb(230, 230, 230);border-radius: 5px;padding:5px;font: 12pt "Bahnschrift SemiBold"; margin-bottom: 40px;')
-            # d1.textChanged.connect()
-            d2 = QLineEdit()
-            d2.setStyleSheet('background-color: rgb(230, 230, 230);border-radius: 5px;padding:5px;font: 12pt "Bahnschrift SemiBold"; margin-bottom: 40px;')
-            # d2.textChanged.connect()
+            
+            #Este va a ser cada delegado por cada pais en el foro!!
+            self.cursor.execute("""SELECT * FROM tabDelegados WHERE idPais = ?""",(int(delegacion["idPais"]),))
+            delegados = self.cursor.fetchall()
             hLayout = QHBoxLayout()
-            hLayout.addWidget(d1)
-            hLayout.addWidget(d2)
+            for delegado in delegados:
+                Delegado = str(delegado["Delegado"])
+                d = QLineEdit(Delegado if Delegado != "None" else "")
+                d.setStyleSheet('background-color: rgb(230, 230, 230);border-radius: 5px;padding:5px;font: 12pt "Bahnschrift SemiBold"; margin-bottom: 40px;')
+                d.textChanged.connect(lambda texto, idNota=delegado["idNota"]: (
+                                            self.cursor.execute(
+                                                """UPDATE tabDelegados SET Delegado = ? WHERE idNota = ?""",
+                                                (texto, idNota)
+                                            ),
+                                            self.conn.commit()
+                                        )
+                                    )
+                hLayout.addWidget(d)
 
+                self.conn.commit()
             layout.layout().addWidget(nomPais)
             layout.layout().addLayout(hLayout)   
-        layout.layout().addStretch()
+            layout.layout().addStretch()
 
     def Cronometro(self):            #Afecta el *Cronometro*. 
         def MoverReloj(fecha):
