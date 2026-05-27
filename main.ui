@@ -548,12 +548,9 @@ padding: 7px;</string>
              <string notr="true">font: 50 15pt &quot;Bahnschrift Light&quot;;
 QCheckBox {
                 text-align: left;
-                padding-right: 20px;
                 font-size: 16px;
-            };
-
-QCheckBox::indicator {
-                subcontrol-position: right center;
+				padding-right: 20px;
+				margin-right: 20px;
             }</string>
             </property>
             <property name="editTriggers">
@@ -586,6 +583,11 @@ QCheckBox::indicator {
             <column>
              <property name="text">
               <string>pais</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>enForo</string>
              </property>
             </column>
            </widget>

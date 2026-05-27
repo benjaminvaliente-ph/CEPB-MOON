@@ -128,15 +128,14 @@ class MiVentana(QMainWindow):
             for fila in self.cursor.fetchall():
                 pais = fila["pais"]
                 btn_paisEnForo = QCheckBox()
-                btn_paisEnForo.setText(fila["pais"])
                 btn_paisEnForo.setChecked(bool(fila["enforo"]))
-                btn_paisEnForo.setLayoutDirection(Qt.RightToLeft)
-                btn_paisEnForo.setCursor(Qt.PointingHandCursor)
                 btn_paisEnForo.stateChanged.connect(lambda state, p=pais: PaisEnForo(state, p))
+                btn_paisEnForo.setLayoutDirection(Qt.RightToLeft)
 
                 row_position = self.listaForo.rowCount()
                 self.listaForo.insertRow(row_position)
-                self.listaForo.setCellWidget(row_position,0,btn_paisEnForo)
+                self.listaForo.setItem(row_position,0,QTableWidgetItem(fila["pais"]))
+                self.listaForo.setCellWidget(row_position,1,btn_paisEnForo)
         BuscarPais("")
         self.txtBuscarEnForo.textChanged.connect(BuscarPais)
 
