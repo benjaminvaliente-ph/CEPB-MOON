@@ -2,6 +2,7 @@ import sqlite3
 from PyQt5.QtWidgets  import *
 from PyQt5.uic import *
 from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 import sys
 
 class MiVentana(QMainWindow):
@@ -30,7 +31,6 @@ class MiVentana(QMainWindow):
         self.btn_verPaises.clicked.connect(lambda _, c=self.listaPaises_2: self.Expandir(c))
         self.btn_nombrarPaises.clicked.connect(lambda _, c=self.Delegados_3: (self.Expandir(c), self.DelegacionesEnForo(self.Delegados)))
 
-        
         self.cerrarSideBar.clicked.connect(lambda: self.sideBar.setMaximumWidth(0))
         
         self.listaForo.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
@@ -38,6 +38,7 @@ class MiVentana(QMainWindow):
         self.PaisesEnForo()
         self.DelegacionesEnForo(self.Delegados)
         self.Cronometro()
+        self.Configuraciones()
 
     def Buscar(self):                #Para buscar un pais y que se añada a la lista de oradores
         txt = self.txtBuscador.text().strip()
@@ -67,25 +68,17 @@ class MiVentana(QMainWindow):
                 
     def QuitarPais(self, pais):      #Afecta el *Historial*. Quitar un pais de la lista de oradores, registrar y cronometrarlo 
         def Registrar(nompais):
-                conn = sqlite3.connect("db_CEPBMOON.db")
-                cursor = conn.cursor()
-                cursor.execute("""
-                    UPDATE tabdelegaciones
-                    SET turnos = turnos + 1
-                    WHERE pais = ?
-                """, (nompais,))
-                conn.commit()
-                conn.close()
+                self.cursor.execute("""UPDATE tabdelegaciones SET turnos = turnos + 1 WHERE pais = ?""", (nompais,))
+                self.conn.commit()
 
                 self.cursor.execute("SELECT turnos FROM tabdelegaciones WHERE pais = ?",(nompais,))
                 turnos= self.cursor.fetchone()["turnos"]
 
-                row_position = self.listaHistorial.rowCount()
-                self.listaHistorial.insertRow(row_position)
-                self.listaHistorial.setItem(row_position, 0, QTableWidgetItem(nompais))
-                self.listaHistorial.setItem(row_position, 1, QTableWidgetItem(str(turnos)))
+                self.listaHistorial.insertRow(0)
+                self.listaHistorial.setItem(0, 0, QTableWidgetItem(nompais))
+                self.listaHistorial.setItem(0, 1, QTableWidgetItem(str(turnos)))
 
-        def Cronometrar(pais):
+        def Cronometro(pais):
             self.time = self.time.addSecs(-1)
             timeDisplay = self.time.toString("mm:ss")
             self.txtCronometro.setText(f"{timeDisplay} - {pais}")
@@ -94,12 +87,25 @@ class MiVentana(QMainWindow):
                 self.txtCronometro.setText(f"00:00")
         
         txt = str(pais.text())
-        pais.deleteLater()
-        self.txtCronometro.setText(f"03:00 - {txt}")
-        self.timer = QTimer()
-        self.time = QTime(0, 3, 0) #Tiempo que empieza el cronometro !!
-        self.timer.start(1000)
-        self.timer.timeout.connect(lambda: Cronometrar(txt))
+
+        def Cronometrar():
+            pais.deleteLater()
+            self.timer = QTimer()
+            
+            self.cursor.execute("SELECT lectura FROM tabtiempos")
+            tLectura = self.cursor.fetchone()
+            
+            self.time = QTime(0, 0, 0)              # Tiempo que empieza el cronometro !!
+            self.time = self.time.addSecs(int(tLectura["lectura"]))      # Añadir segundos - lee de la base de datos
+            self.txtCronometro.setText(f"{self.time.toString("mm:ss")} - {txt}")
+            self.timer.start(1000)
+            self.timer.timeout.connect(lambda: Cronometro(txt))
+        Cronometrar()
+
+        self.Lectura = QShortcut(QKeySequence("l"), self)
+        self.Lectura.setContext(Qt.ApplicationLectura)
+        self.Lectura.activated.connect(self.my_custom_function)
+
         Registrar(txt)
 
     def Buscador(self):              #Actualizar el buscador cuando se cambia los paises en un foro
@@ -111,13 +117,9 @@ class MiVentana(QMainWindow):
         self.txtBuscador.setCompleter(self.completer)
         self.paises = paises
 
-    def PaisesEnForo(self):          #Actualizar que paises se cargarán, cargar la lista y checkboxes para seleccionar o no las delegaciones
+    def PaisesEnForo(self):          # Actualizar que paises se cargarán, cargar la lista y checkboxes para seleccionar o no las delegaciones
         def PaisEnForo(state, pais):
-            self.cursor.execute("""
-                UPDATE tabdelegaciones
-                SET enforo = ?
-                WHERE pais = ?
-            """, (state, pais))
+            self.cursor.execute("""UPDATE tabdelegaciones SET enforo = ? WHERE pais = ?""", (state, pais))
             self.conn.commit()
             self.Buscador()
 
@@ -139,7 +141,7 @@ class MiVentana(QMainWindow):
         BuscarPais("")
         self.txtBuscarEnForo.textChanged.connect(BuscarPais)
 
-    def DelegacionesEnForo(self, layout): #Nombra a los delegados en una delegación
+    def DelegacionesEnForo(self, layout): # Nombra a los delegados en una delegación
         while layout.layout().count():
             item = layout.layout().takeAt(0)
             if item.widget():
@@ -150,27 +152,21 @@ class MiVentana(QMainWindow):
         self.cursor.execute("""SELECT idPais, pais FROM tabdelegaciones WHERE enforo = 2""")
         paisesEnForo=self.cursor.fetchall()
         hLayout = QHBoxLayout()
+
         for delegacion in paisesEnForo:
             nomPais = QLabel(str(delegacion["pais"]))
             nomPais.setStyleSheet('font: 12pt "Bahnschrift SemiBold"; text-align: center;')
             nomPais.setAlignment(Qt.AlignCenter)
             
-            #Este va a ser cada delegado por cada pais en el foro!!
-            self.cursor.execute("""SELECT * FROM tabDelegados WHERE idPais = ?""",(int(delegacion["idPais"]),))
-            delegados = self.cursor.fetchall()
+            self.cursor.execute("""SELECT * FROM tabDelegados WHERE idPais = ?""", (int(delegacion["idPais"]),))
             hLayout = QHBoxLayout()
-            for delegado in delegados:
+            for delegado in self.cursor.fetchall():
                 Delegado = str(delegado["Delegado"])
                 d = QLineEdit(Delegado if Delegado != "None" else "")
                 d.setStyleSheet('background-color: rgb(230, 230, 230);border-radius: 5px;padding:5px;font: 12pt "Bahnschrift SemiBold"; margin-bottom: 40px;')
-                d.textChanged.connect(lambda texto, idNota=delegado["idNota"]: (
-                                            self.cursor.execute(
-                                                """UPDATE tabDelegados SET Delegado = ? WHERE idNota = ?""",
-                                                (texto, idNota)
-                                            ),
-                                            self.conn.commit()
-                                        )
-                                    )
+                d.textChanged.connect(lambda texto, idNota=delegado["idNota"]: 
+                                      (self.cursor.execute("""UPDATE tabDelegados SET Delegado = ? WHERE idNota = ?""",(texto, idNota)),
+                                       self.conn.commit()))
                 hLayout.addWidget(d)
 
                 self.conn.commit()
@@ -178,7 +174,7 @@ class MiVentana(QMainWindow):
             layout.layout().addLayout(hLayout)   
             layout.layout().addStretch()
 
-    def Cronometro(self):            #Afecta el *Cronometro*. 
+    def Cronometro(self):            # Afecta el *Cronometro*. 
         def MoverReloj(fecha):
             self.Cron.setSliderPosition(30+int(fecha.hour() * 60 + fecha.minute()))
 
@@ -202,6 +198,25 @@ class MiVentana(QMainWindow):
         self.btnComenzarCron.clicked.connect(lambda:(IniciarCronometro(self.txtCron.time()), MoverReloj(self.txtCron.time())))
         self.btnPausarCron.clicked.connect(lambda: (self.txtCron.setReadOnly(True if not self.txtCron.isReadOnly() else False), self.timerCron.stop()))
 
+    def Configuraciones(self):       # Permite cambiar los tiempos
+        def CambiarTiempo(columna, tiempo):
+            segundos = tiempo.hour()*3600 + tiempo.minute()*60 + tiempo.second()
+            self.cursor.execute(f"UPDATE tabtiempos SET {columna} = ?", (segundos,))
+            self.conn.commit()
+
+        self.cursor.execute("SELECT lectura, cuestionar, pensar, contestar FROM tabtiempos")
+        tLectura, tCuestionar, tPensar, tContestar = self.cursor.fetchone()
+
+        self.timeLectura.setTime(self.timeLectura.time().addSecs(tLectura))
+        self.timeCuestionar.setTime(self.timeCuestionar.time().addSecs(tCuestionar))
+        self.timePensar.setTime(self.timePensar.time().addSecs(tPensar))
+        self.timeContestar.setTime(self.timeContestar.time().addSecs(tContestar))
+
+        self.timeLectura.timeChanged.connect(lambda t: CambiarTiempo("lectura", t))
+        self.timeCuestionar.timeChanged.connect(lambda t: CambiarTiempo("cuestionar", t))
+        self.timePensar.timeChanged.connect(lambda t: CambiarTiempo("pensar", t))
+        self.timeContestar.timeChanged.connect(lambda t: CambiarTiempo("contestar", t))
+
     def Expandir(self, nombre):      #Expandir la barra al costado, comprimir las demas barras
         self.sideBar.setMaximumWidth(400)
         self.Anotaciones_2.setMaximumHeight(0)
@@ -213,9 +228,7 @@ class MiVentana(QMainWindow):
         nombre.setMaximumHeight(16777215)
     
     def closeEvent(self, a0):        #Reiniciar los turnos de las delegaciones al cerrar el programa, crear un pdf que registra lo que sucedió en la sesión
-        self.cursor.execute("""
-            UPDATE tabdelegaciones
-            SET turnos = 0""")
+        self.cursor.execute("""UPDATE tabdelegaciones SET turnos = 0""")
         self.conn.commit()
         self.conn.close()
 
