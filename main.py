@@ -37,8 +37,9 @@ class MiVentana(QMainWindow):
         self.listaHistorial.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.PaisesEnForo()
         self.DelegacionesEnForo(self.Delegados)
-        self.Cronometro()
         self.Configuraciones()
+        self.Cronometro()
+        self.Observaciones()
 
     def Buscar(self):                #Para buscar un pais y que se añada a la lista de oradores
         txt = self.txtBuscador.text().strip()
@@ -67,7 +68,9 @@ class MiVentana(QMainWindow):
         self.scrollLayout.addStretch()
                 
     def QuitarPais(self, pais):      #Afecta el *Historial*. Quitar un pais de la lista de oradores, registrar y cronometrarlo 
-        def Registrar(nompais):
+        pais.deleteLater()
+        self.timer = QTimer()
+        def Registrar(nompais):      # Añade el pais al historial
                 self.cursor.execute("""UPDATE tabdelegaciones SET turnos = turnos + 1 WHERE pais = ?""", (nompais,))
                 self.conn.commit()
 
@@ -77,36 +80,56 @@ class MiVentana(QMainWindow):
                 self.listaHistorial.insertRow(0)
                 self.listaHistorial.setItem(0, 0, QTableWidgetItem(nompais))
                 self.listaHistorial.setItem(0, 1, QTableWidgetItem(str(turnos)))
-
-        def Cronometro(pais):
-            self.time = self.time.addSecs(-1)
-            timeDisplay = self.time.toString("mm:ss")
-            self.txtCronometro.setText(f"{timeDisplay} - {pais}")
-            if self.time == QTime(0, 0, 0):
-                self.timer.stop()
-                self.txtCronometro.setText(f"00:00")
         
         txt = str(pais.text())
 
-        def Cronometrar():
-            pais.deleteLater()
-            self.timer = QTimer()
+        def Cronometrar(tiempo): 
+            def Cronometro(pais):
+                if self.time == QTime(0, 0, 0):
+                    self.timer.stop()
+                    if tiempo == "pensar":
+                        Cronometrar("contestar")
+                    else:
+                        self.txtCronometro.setText(f"00:00")
+                    return
+                self.time = self.time.addSecs(-1)
+                timeDisplay = self.time.toString("mm:ss")
+                self.txtCronometro.setText(f"{timeDisplay} - {pais}")
             
-            self.cursor.execute("SELECT lectura FROM tabtiempos")
-            tLectura = self.cursor.fetchone()
-            
-            self.time = QTime(0, 0, 0)              # Tiempo que empieza el cronometro !!
-            self.time = self.time.addSecs(int(tLectura["lectura"]))      # Añadir segundos - lee de la base de datos
-            self.txtCronometro.setText(f"{self.time.toString("mm:ss")} - {txt}")
-            self.timer.start(1000)
-            self.timer.timeout.connect(lambda: Cronometro(txt))
-        Cronometrar()
+            self.Lectura.setEnabled(False)
+            self.Cuestionar.setEnabled(False)
+            self.Contestar.setEnabled(False)
 
+            self.cursor.execute(f"SELECT {tiempo} FROM tabtiempos")
+            t = self.cursor.fetchone()
+            
+            self.time = QTime(0, 0, 0)
+            self.time = self.time.addSecs(int(t[f"{tiempo}"]))      # Añadir segundos - lee de la base de datos
+            self.txtCronometro.setText(f"{self.time.toString("mm:ss")} - {txt}")
+            try:
+                self.timer.timeout.disconnect()
+            except:
+                pass
+            self.timer.timeout.connect(lambda: Cronometro(txt))
+            self.timer.start(1000)
+
+        self.txtCronometro.setText(txt)
         self.Lectura = QShortcut(QKeySequence("l"), self)
-        self.Lectura.setContext(Qt.ApplicationLectura)
-        self.Lectura.activated.connect(self.my_custom_function)
+        self.Cuestionar = QShortcut(QKeySequence("c"), self)
+        self.Contestar = QShortcut(QKeySequence("r"), self)
+        self.Lectura.activated.connect(lambda: Cronometrar("lectura"))
+        self.Cuestionar.activated.connect(lambda: Cronometrar("cuestionar"))
+        self.Contestar.activated.connect(lambda: Cronometrar("pensar"))
 
         Registrar(txt)
+
+    def Observaciones(self):
+        self.cursor.execute("SELECT pais FROM tabdelegaciones WHERE enforo = 2")
+
+        self.paises = [fila["pais"] for fila in self.cursor.fetchall()]
+        self.completerDelegacion = QCompleter(self.paises)
+        self.completerDelegacion.setCaseSensitivity(Qt.CaseInsensitive)
+        self.txtDelegacion.setCompleter(self.completer)
 
     def Buscador(self):              #Actualizar el buscador cuando se cambia los paises en un foro
         self.cursor.execute("SELECT pais FROM tabdelegaciones WHERE enforo = 2")
@@ -189,6 +212,7 @@ class MiVentana(QMainWindow):
                 if self.tiempoCron == QTime(0, 0, 0):
                     self.timerCron.stop()
                     self.txtCron.setReadOnly(False)
+                    self.Expandir(self.Cronometro_2)
 
             self.txtCron.setReadOnly(True)
             self.timerCron.timeout.connect(Cronometrar)
