@@ -124,12 +124,35 @@ class MiVentana(QMainWindow):
         Registrar(txt)
 
     def Observaciones(self):
+        def AnotarObservacion():
+            self.cursor.execute("UPDATE tabnotas SET Nota = ? WHERE tabnotas.idNota = tabdelegados.idoNota")
+            self.txtDelegacion.setText("")
+
+        def ElegirDelegado(pais):
+            colores = ["font: 11pt 'Bahnschrift SemiLight'; background-color: #bbb; border-radius: 15px; margin-left: 5px; padding-left:5px;", "font: 11pt 'Bahnschrift SemiLight'; background-color: #ddd; border-radius: 15px; margin-left: 5px; padding-left:5px;"]
+            try:
+                self.cursor.execute(f"SELECT Delegado FROM tabdelegados INNER JOIN tabdelegaciones ON tabdelegados.idPais = tabdelegaciones.idPais WHERE tabdelegaciones.pais = ?;", (f"{pais}",))
+                delegados = self.cursor.fetchall()
+                self.btnD1.setText(str(delegados[0][0]))
+                self.btnD2.setText(str(delegados[1][0]))
+            
+                self.btnD1.clicked.connect(lambda: (self.btnD1.setStyleSheet(colores[1]), self.btnD2.setStyleSheet(colores[0])))
+                self.btnD2.clicked.connect(lambda: (self.btnD2.setStyleSheet(colores[1]), self.btnD1.setStyleSheet(colores[0])))
+
+                self.btnAnotar.clicked.connect(AnotarObservacion)
+            except:
+                self.btnD1.setText(self.btnD2.setText(""))
+                self.btnD1.setStyleSheet(colores[1])
+                self.btnD2.setStyleSheet(colores[1])
+
         self.cursor.execute("SELECT pais FROM tabdelegaciones WHERE enforo = 2")
 
         self.paises = [fila["pais"] for fila in self.cursor.fetchall()]
         self.completerDelegacion = QCompleter(self.paises)
         self.completerDelegacion.setCaseSensitivity(Qt.CaseInsensitive)
         self.txtDelegacion.setCompleter(self.completer)
+
+        self.txtDelegacion.textChanged.connect(lambda: ElegirDelegado(self.txtDelegacion.text()))
 
     def Buscador(self):              #Actualizar el buscador cuando se cambia los paises en un foro
         self.cursor.execute("SELECT pais FROM tabdelegaciones WHERE enforo = 2")
@@ -149,7 +172,7 @@ class MiVentana(QMainWindow):
         def BuscarPais(n):
             self.listaForo.setRowCount(0)
 
-            self.cursor.execute("""SELECT * FROM tabdelegaciones WHERE pais LIKE ?""", (f"{n}%",))
+            self.cursor.execute("""SELECT * FROM tabdelegaciones WHERE pais LIKE ?""", (f"{n}%",))          #load bearing porcentaje
             for fila in self.cursor.fetchall():
                 pais = fila["pais"]
                 btn_paisEnForo = QCheckBox()

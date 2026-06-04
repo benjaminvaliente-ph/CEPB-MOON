@@ -6,5 +6,6 @@ cursor = conn.cursor()
 
 cursor.execute("""UPDATE tabdelegaciones SET enforo = 0""")
 cursor.execute("""UPDATE tabdelegados SET Delegado = NULL""")
+cursor.execute("""UPDATE tabnota SET Nota = 100""")
 
 conn.commit()
