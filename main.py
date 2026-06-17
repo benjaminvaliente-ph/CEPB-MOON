@@ -5,7 +5,43 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import sys
 
-class MiVentana(QMainWindow):
+class NombrarMesa(QDialog):
+    def __init__(self, msj):
+        super().__init__()
+        loadUi("dialog.ui", self)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
+        if msj == 1:
+            self.msjBienvenida.setMaximumHeight(0)
+        self.conn = sqlite3.connect("db_CEPBMOON.db")
+        self.conn.row_factory = sqlite3.Row
+        self.cursor = self.conn.cursor()
+
+        self.btnGuardar.clicked.connect(self.GuardarNombres)
+        self.Nombres()
+
+    def Nombres(self):
+        self.cursor.execute("SELECT * FROM tabMesa")
+        mesa = self.cursor.fetchone()
+
+        self.nomPresidente.setText(mesa["Presidente"] or "")
+        self.nomModerador.setText(mesa["Moderador"] or "")
+        self.nomSecretario.setText(mesa["Secretario"] or "")
+        self.nomEvaluador.setText(mesa["Evaluador"] or "")
+        self.nomForo.setText(mesa["Foro"] or "")
+        self.ano.setText(str(mesa["Año"]) or "")
+
+    def GuardarNombres(self):
+        presidente = self.nomPresidente.text() or None
+        moderador = self.nomModerador.text() or None
+        secretario = self.nomSecretario.text() or None
+        evaluador = self.nomEvaluador.text() or None
+        foro = self.nomForo.text() or None
+        ano = self.ano.text() or None
+        self.cursor.execute(f"UPDATE tabMesa SET Presidente= ?, Moderador= ?, Secretario= ?, Evaluador= ?, Foro = ?, Año = ?;", (presidente, moderador, secretario, evaluador, foro, ano))
+        self.conn.commit()
+        self.close()
+
+class CEPBMOON(QMainWindow):
     def __init__(self):
         super().__init__()
         loadUi("main.ui", self)
@@ -13,9 +49,17 @@ class MiVentana(QMainWindow):
         self.conn = sqlite3.connect("db_CEPBMOON.db")
         self.conn.row_factory = sqlite3.Row
         self.cursor = self.conn.cursor()
-        self.cursor.execute("SELECT pais FROM tabdelegaciones WHERE enforo = 2")
 
-        self.paises = [fila["pais"] for fila in self.cursor.fetchall()]
+        self.cursor.execute("SELECT Presidente, Moderador, Secretario, Evaluador, Foro, Año FROM tabMesa")
+        mesa = self.cursor.fetchone()
+        if None in mesa:
+            self.nombrarMesa = NombrarMesa(0)
+            self.nombrarMesa.setModal(True)
+            self.nombrarMesa.show()
+
+        self.cursor.execute("SELECT nomDelegacion FROM tabDelegaciones WHERE enforo = 2")
+
+        self.paises = [fila["nomDelegacion"] for fila in self.cursor.fetchall()]
         self.completer = QCompleter(self.paises)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.txtBuscador.setCompleter(self.completer)
@@ -28,11 +72,9 @@ class MiVentana(QMainWindow):
         self.btn2.clicked.connect(lambda _, c=self.Anotaciones_2: self.Expandir(c))
         self.btn3.clicked.connect(lambda _, c=self.Cronometro_2: self.Expandir(c))
         self.btn4.clicked.connect(lambda _, c=self.Historial: self.Expandir(c))
-        self.btn_verPaises.clicked.connect(lambda _, c=self.listaPaises_2: self.Expandir(c))
-        self.btn_nombrarPaises.clicked.connect(lambda _, c=self.Delegados_3: (self.Expandir(c), self.DelegacionesEnForo(self.Delegados)))
 
         self.cerrarSideBar.clicked.connect(lambda: self.sideBar.setMaximumWidth(0))
-        
+        self.btnLimpiar.clicked.connect(lambda: self.LimpiarLayout(self.scrollLayout))
         self.listaForo.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.listaHistorial.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.PaisesEnForo()
@@ -71,10 +113,10 @@ class MiVentana(QMainWindow):
         pais.deleteLater()
         self.timer = QTimer()
         def Registrar(nompais):      # Añade el pais al historial
-                self.cursor.execute("""UPDATE tabdelegaciones SET turnos = turnos + 1 WHERE pais = ?""", (nompais,))
+                self.cursor.execute("""UPDATE tabDelegaciones SET turnos = turnos + 1 WHERE nomDelegacion = ?""", (nompais,))
                 self.conn.commit()
 
-                self.cursor.execute("SELECT turnos FROM tabdelegaciones WHERE pais = ?",(nompais,))
+                self.cursor.execute("SELECT turnos FROM tabDelegaciones WHERE nomDelegacion = ?",(nompais,))
                 turnos= self.cursor.fetchone()["turnos"]
 
                 self.listaHistorial.insertRow(0)
@@ -100,7 +142,7 @@ class MiVentana(QMainWindow):
             self.Cuestionar.setEnabled(False)
             self.Contestar.setEnabled(False)
 
-            self.cursor.execute(f"SELECT {tiempo} FROM tabtiempos")
+            self.cursor.execute(f"SELECT {tiempo} FROM tabTiempos")
             t = self.cursor.fetchone()
             
             self.time = QTime(0, 0, 0)
@@ -117,7 +159,7 @@ class MiVentana(QMainWindow):
         self.Lectura = QShortcut(QKeySequence("l"), self)
         self.Cuestionar = QShortcut(QKeySequence("c"), self)
         self.Contestar = QShortcut(QKeySequence("r"), self)
-        self.Lectura.activated.connect(lambda: Cronometrar("lectura"))
+        self.Lectura.activated.connect(lambda: Cronometrar("leer"))
         self.Cuestionar.activated.connect(lambda: Cronometrar("cuestionar"))
         self.Contestar.activated.connect(lambda: Cronometrar("pensar"))
 
@@ -125,17 +167,25 @@ class MiVentana(QMainWindow):
 
     def Observaciones(self):
         def AnotarObservacion():
-            self.cursor.execute("UPDATE tabnotas SET Nota = ? WHERE tabnotas.idNota = tabdelegados.idoNota")
-            self.txtDelegacion.setText("")
+            self.cursor.execute("""INSERT INTO tabPuntaje (idDelegado, idObs, puntaje)
+                                   SELECT idDelegado, ?, ?
+                                   FROM tabDelegados
+                                   WHERE tabDelegados.nomDelegado = ?""", ()) #Obs, puntaje, nombre elegido
+            
+            self.numPuntaje.setValue(0)
+            self.txtDelegacion.setText(self.txtObservacion.setText(""))
 
-        def ElegirDelegado(pais):
+        def ElegirDelegado(pais):               #Aca puede salir un error!
             colores = ["font: 11pt 'Bahnschrift SemiLight'; background-color: #bbb; border-radius: 15px; margin-left: 5px; padding-left:5px;", "font: 11pt 'Bahnschrift SemiLight'; background-color: #ddd; border-radius: 15px; margin-left: 5px; padding-left:5px;"]
             try:
-                self.cursor.execute(f"SELECT Delegado FROM tabdelegados INNER JOIN tabdelegaciones ON tabdelegados.idPais = tabdelegaciones.idPais WHERE tabdelegaciones.pais = ?;", (f"{pais}",))
+                self.cursor.execute(f"SELECT nomDelegado FROM tabDelegados INNER JOIN tabDelegaciones ON tabDelegados.idDelegacion = tabDelegaciones.idDelegacion WHERE tabDelegaciones.nomDelegacion = ?;", (f"{pais}",))
                 delegados = self.cursor.fetchall()
-                self.btnD1.setText(str(delegados[0][0]))
-                self.btnD2.setText(str(delegados[1][0]))
-            
+                self.btnD1.setText((str(delegados[0][0])) if delegados[0][0] != None else "")
+                self.btnD2.setText((str(delegados[1][0])) if delegados[1][0] != None else "")
+
+                self.btnD1.setEnabled(bool(self.btnD1.text()))
+                self.btnD2.setEnabled(bool(self.btnD2.text()))
+
                 self.btnD1.clicked.connect(lambda: (self.btnD1.setStyleSheet(colores[1]), self.btnD2.setStyleSheet(colores[0])))
                 self.btnD2.clicked.connect(lambda: (self.btnD2.setStyleSheet(colores[1]), self.btnD1.setStyleSheet(colores[0])))
 
@@ -145,9 +195,9 @@ class MiVentana(QMainWindow):
                 self.btnD1.setStyleSheet(colores[1])
                 self.btnD2.setStyleSheet(colores[1])
 
-        self.cursor.execute("SELECT pais FROM tabdelegaciones WHERE enforo = 2")
+        self.cursor.execute("SELECT nomDelegacion FROM tabDelegaciones WHERE enforo = 2")
 
-        self.paises = [fila["pais"] for fila in self.cursor.fetchall()]
+        self.paises = [fila["nomDelegacion"] for fila in self.cursor.fetchall()]
         self.completerDelegacion = QCompleter(self.paises)
         self.completerDelegacion.setCaseSensitivity(Qt.CaseInsensitive)
         self.txtDelegacion.setCompleter(self.completer)
@@ -155,8 +205,8 @@ class MiVentana(QMainWindow):
         self.txtDelegacion.textChanged.connect(lambda: ElegirDelegado(self.txtDelegacion.text()))
 
     def Buscador(self):              #Actualizar el buscador cuando se cambia los paises en un foro
-        self.cursor.execute("SELECT pais FROM tabdelegaciones WHERE enforo = 2")
-        paises = [fila["pais"] for fila in self.cursor.fetchall()]
+        self.cursor.execute("SELECT nomDelegacion FROM tabDelegaciones WHERE enforo = 2")
+        paises = [fila["nomDelegacion"] for fila in self.cursor.fetchall()]
         modelo = QStringListModel(paises)
         self.completer.setModel(modelo)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
@@ -164,17 +214,35 @@ class MiVentana(QMainWindow):
         self.paises = paises
 
     def PaisesEnForo(self):          # Actualizar que paises se cargarán, cargar la lista y checkboxes para seleccionar o no las delegaciones
-        def PaisEnForo(state, pais):
-            self.cursor.execute("""UPDATE tabdelegaciones SET enforo = ? WHERE pais = ?""", (state, pais))
+        def PaisEnForo(state, pais): # Pone que una delegacion esté en el foro
+            self.cursor.execute("""UPDATE tabDelegaciones SET enforo = ? WHERE nomDelegacion = ?""", (state, pais))
+            self.conn.commit()
+            self.cursor.execute("""INSERT INTO tabDelegados
+                                (nomDelegado, idDelegacion, alumnoCEPB, idCursoSeccion)
+                                SELECT NULL, tabDelegaciones.idDelegacion, NULL, NULL
+                                FROM tabDelegaciones
+                                WHERE tabDelegaciones.nomDelegacion = ?
+                                AND NOT EXISTS (
+                                    SELECT *
+                                    FROM tabDelegados
+                                    WHERE tabDelegaciones.idDelegacion = tabDelegados.idDelegacion)
+
+                                UNION ALL
+
+                                SELECT NULL, tabDelegaciones.idDelegacion, NULL, NULL
+                                FROM tabDelegaciones
+                                WHERE tabDelegaciones.nomDelegacion = ?
+                                AND NOT EXISTS (
+                                    SELECT *
+                                    FROM tabDelegados
+                                    WHERE tabDelegados.idDelegacion = tabDelegaciones.idDelegacion);""", (pais, pais))
             self.conn.commit()
             self.Buscador()
-
-        def BuscarPais(n):
+        def BuscarPais(n):          # Este actualiza el buscador de paises en la fila principal
             self.listaForo.setRowCount(0)
-
-            self.cursor.execute("""SELECT * FROM tabdelegaciones WHERE pais LIKE ?""", (f"{n}%",))          #load bearing porcentaje
+            self.cursor.execute("""SELECT * FROM tabDelegaciones WHERE nomDelegacion LIKE ?""", (f"{n}%",))          #load bearing porcentaje
             for fila in self.cursor.fetchall():
-                pais = fila["pais"]
+                pais = fila["nomDelegacion"]
                 btn_paisEnForo = QCheckBox()
                 btn_paisEnForo.setChecked(bool(fila["enforo"]))
                 btn_paisEnForo.stateChanged.connect(lambda state, p=pais: PaisEnForo(state, p))
@@ -182,36 +250,39 @@ class MiVentana(QMainWindow):
 
                 row_position = self.listaForo.rowCount()
                 self.listaForo.insertRow(row_position)
-                self.listaForo.setItem(row_position,0,QTableWidgetItem(fila["pais"]))
+                self.listaForo.setItem(row_position,0,QTableWidgetItem(fila["nomDelegacion"]))
                 self.listaForo.setCellWidget(row_position,1,btn_paisEnForo)
         BuscarPais("")
+
         self.txtBuscarEnForo.textChanged.connect(BuscarPais)
 
-    def DelegacionesEnForo(self, layout): # Nombra a los delegados en una delegación
-        while layout.layout().count():
-            item = layout.layout().takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
-                self.DelegacionesEnForo(item.layout())
+    def LimpiarLayout(self,layout):
+            while layout.layout().count():
+                item = layout.layout().takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+                elif item.layout():
+                    self.DelegacionesEnForo(item.layout())
 
-        self.cursor.execute("""SELECT idPais, pais FROM tabdelegaciones WHERE enforo = 2""")
+    def DelegacionesEnForo(self, layout): # Nombra a los delegados en una delegación
+        self.LimpiarLayout(layout)
+        self.cursor.execute("""SELECT idDelegacion, nomDelegacion FROM tabDelegaciones WHERE enforo = 2""")
         paisesEnForo=self.cursor.fetchall()
         hLayout = QHBoxLayout()
 
         for delegacion in paisesEnForo:
-            nomPais = QLabel(str(delegacion["pais"]))
+            nomPais = QLabel(str(delegacion["nomDelegacion"]))
             nomPais.setStyleSheet('font: 12pt "Bahnschrift SemiBold"; text-align: center;')
             nomPais.setAlignment(Qt.AlignCenter)
             
-            self.cursor.execute("""SELECT * FROM tabDelegados WHERE idPais = ?""", (int(delegacion["idPais"]),))
+            self.cursor.execute("""SELECT * FROM tabDelegados WHERE idDelegacion = ?""", (int(delegacion["idDelegacion"]),))
             hLayout = QHBoxLayout()
             for delegado in self.cursor.fetchall():
-                Delegado = str(delegado["Delegado"])
+                Delegado = str(delegado["nomDelegado"])
                 d = QLineEdit(Delegado if Delegado != "None" else "")
                 d.setStyleSheet('background-color: rgb(230, 230, 230);border-radius: 5px;padding:5px;font: 12pt "Bahnschrift SemiBold"; margin-bottom: 40px;')
-                d.textChanged.connect(lambda texto, idNota=delegado["idNota"]: 
-                                      (self.cursor.execute("""UPDATE tabDelegados SET Delegado = ? WHERE idNota = ?""",(texto, idNota)),
+                d.textChanged.connect(lambda texto, idNota=delegado["idDelegado"]: 
+                                      (self.cursor.execute("""UPDATE tabDelegados SET nomDelegado = ? WHERE idDelegado = ?""",(texto, idNota)),
                                        self.conn.commit()))
                 hLayout.addWidget(d)
 
@@ -248,10 +319,10 @@ class MiVentana(QMainWindow):
     def Configuraciones(self):       # Permite cambiar los tiempos
         def CambiarTiempo(columna, tiempo):
             segundos = tiempo.hour()*3600 + tiempo.minute()*60 + tiempo.second()
-            self.cursor.execute(f"UPDATE tabtiempos SET {columna} = ?", (segundos,))
+            self.cursor.execute(f"UPDATE tabTiempos SET {columna} = ?", (segundos,))
             self.conn.commit()
 
-        self.cursor.execute("SELECT lectura, cuestionar, pensar, contestar FROM tabtiempos")
+        self.cursor.execute("SELECT leer, cuestionar, pensar, contestar FROM tabTiempos")
         tLectura, tCuestionar, tPensar, tContestar = self.cursor.fetchone()
 
         self.timeLectura.setTime(self.timeLectura.time().addSecs(tLectura))
@@ -259,10 +330,16 @@ class MiVentana(QMainWindow):
         self.timePensar.setTime(self.timePensar.time().addSecs(tPensar))
         self.timeContestar.setTime(self.timeContestar.time().addSecs(tContestar))
 
-        self.timeLectura.timeChanged.connect(lambda t: CambiarTiempo("lectura", t))
+        self.timeLectura.timeChanged.connect(lambda t: CambiarTiempo("leer", t))
         self.timeCuestionar.timeChanged.connect(lambda t: CambiarTiempo("cuestionar", t))
         self.timePensar.timeChanged.connect(lambda t: CambiarTiempo("pensar", t))
         self.timeContestar.timeChanged.connect(lambda t: CambiarTiempo("contestar", t))
+
+        self.btn_verPaises.clicked.connect(lambda _, c=self.listaPaises_2: self.Expandir(c))
+        self.btn_nombrarPaises.clicked.connect(lambda _, c=self.Delegados_3: (self.Expandir(c), self.DelegacionesEnForo(self.Delegados)))
+        self.nombrarMesa1 = NombrarMesa(1)
+        self.nombrarMesa1.setModal(True)
+        self.btn_nombrarMesa.clicked.connect(lambda: self.nombrarMesa1.show())
 
     def Expandir(self, nombre):      #Expandir la barra al costado, comprimir las demas barras
         self.sideBar.setMaximumWidth(400)
@@ -275,11 +352,11 @@ class MiVentana(QMainWindow):
         nombre.setMaximumHeight(16777215)
     
     def closeEvent(self, a0):        #Reiniciar los turnos de las delegaciones al cerrar el programa, crear un pdf que registra lo que sucedió en la sesión
-        self.cursor.execute("""UPDATE tabdelegaciones SET turnos = 0""")
+        self.cursor.execute("""UPDATE tabDelegaciones SET turnos = 0""")
         self.conn.commit()
         self.conn.close()
 
 app= QApplication(sys.argv)
-ventana= MiVentana()
+ventana= CEPBMOON()
 ventana.show()
 sys.exit(app.exec_()) 
