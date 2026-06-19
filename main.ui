@@ -295,6 +295,12 @@ color: rgb(173, 0, 40);</string>
        </property>
        <item>
         <widget class="QWidget" name="Configuraciones_2" native="true">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>0</height>
+          </size>
+         </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <item>
            <widget class="QLabel" name="label">
@@ -941,12 +947,6 @@ font: 11pt &quot;Bahnschrift SemiLight&quot;;</string>
        </item>
        <item>
         <widget class="QWidget" name="Anotaciones_2" native="true">
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>0</height>
-          </size>
-         </property>
          <layout class="QVBoxLayout" name="Anotaciones">
           <item>
            <widget class="QLabel" name="label_11">
@@ -1165,6 +1165,24 @@ font: 11pt &quot;Bahnschrift SemiLight&quot;;</string>
                </property>
                <property name="text">
                 <string>Anotar</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnHistorialObservaciones">
+               <property name="minimumSize">
+                <size>
+                 <width>250</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(200, 200, 200);
+border-radius: 15px;
+font: 11pt &quot;Bahnschrift SemiLight&quot;;</string>
+               </property>
+               <property name="text">
+                <string>Historial de observaciones</string>
                </property>
               </widget>
              </item>

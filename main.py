@@ -41,6 +41,33 @@ class NombrarMesa(QDialog):
         self.conn.commit()
         self.close()
 
+class HistorialObservaciones(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        loadUi("historialObs.ui", self)
+
+        self.conn = sqlite3.connect("db_CEPBMOON.db")
+        self.conn.row_factory = sqlite3.Row
+        self.cursor = self.conn.cursor()
+
+        self.tabHistorial.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.tabHistorial.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+
+        self.cursor.execute("""SELECT tabDelegaciones.nomDelegacion, tabDelegados.nomDelegado, tabPuntaje.descObs, tabPuntaje.puntaje FROM tabPuntaje
+                                INNER JOIN tabDelegaciones 
+                                ON tabDelegaciones.idDelegacion = tabDelegados.idDelegacion
+
+                                INNER JOIN tabDelegados
+                                ON tabDelegados.idDelegado = tabPuntaje.idDelegado""")
+        self.conn.commit()
+
+        # self.cursor.execute("SELECT turnos FROM tabDelegaciones WHERE nomDelegacion = ?",(nompais,))
+        # turnos= self.cursor.fetchone()["turnos"]
+
+        # self.listaHistorial.insertRow(0)
+        # self.listaHistorial.setItem(0, 0, QTableWidgetItem(nompais))
+        # self.listaHistorial.setItem(0, 1, QTableWidgetItem(str(turnos)))
+
 class CEPBMOON(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -52,6 +79,7 @@ class CEPBMOON(QMainWindow):
 
         self.cursor.execute("SELECT Presidente, Moderador, Secretario, Evaluador, Foro, Año FROM tabMesa")
         mesa = self.cursor.fetchone()
+        self.delegado = ""
         if None in mesa:
             self.nombrarMesa = NombrarMesa(0)
             self.nombrarMesa.setModal(True)
@@ -166,14 +194,16 @@ class CEPBMOON(QMainWindow):
         Registrar(txt)
 
     def Observaciones(self):
-        def AnotarObservacion():
-            self.cursor.execute("""INSERT INTO tabPuntaje (idDelegado, idObs, puntaje)
-                                   SELECT idDelegado, ?, ?
-                                   FROM tabDelegados
-                                   WHERE tabDelegados.nomDelegado = ?""", ()) #Obs, puntaje, nombre elegido
-            
-            self.numPuntaje.setValue(0)
-            self.txtDelegacion.setText(self.txtObservacion.setText(""))
+        def AnotarObservacion(delegado = 0, idObs = 0, ):
+            if self.delegado:
+                self.cursor.execute("""INSERT INTO tabPuntaje (idDelegado, idObs, descObs, puntaje)
+                                    SELECT idDelegado, ?, ?, ?
+                                    FROM tabDelegados
+                                    WHERE tabDelegados.nomDelegado = ?""", (idObs, self.txtObservacion.toPlainText(), self.numPuntaje.text(), self.delegado)) #Obs, puntaje, nombre elegido
+                self.conn.commit()
+                self.delegado=""
+                self.numPuntaje.setValue(0)
+                self.txtDelegacion.setText(self.txtObservacion.setText(""))
 
         def ElegirDelegado(pais):               #Aca puede salir un error!
             colores = ["font: 11pt 'Bahnschrift SemiLight'; background-color: #bbb; border-radius: 15px; margin-left: 5px; padding-left:5px;", "font: 11pt 'Bahnschrift SemiLight'; background-color: #ddd; border-radius: 15px; margin-left: 5px; padding-left:5px;"]
@@ -186,12 +216,18 @@ class CEPBMOON(QMainWindow):
                 self.btnD1.setEnabled(bool(self.btnD1.text()))
                 self.btnD2.setEnabled(bool(self.btnD2.text()))
 
-                self.btnD1.clicked.connect(lambda: (self.btnD1.setStyleSheet(colores[1]), self.btnD2.setStyleSheet(colores[0])))
-                self.btnD2.clicked.connect(lambda: (self.btnD2.setStyleSheet(colores[1]), self.btnD1.setStyleSheet(colores[0])))
+                self.btnD1.clicked.connect(lambda: (self.btnD1.setStyleSheet(colores[1]), self.btnD2.setStyleSheet(colores[0]), setattr(self, "delegado", self.btnD1.text())))
+                self.btnD2.clicked.connect(lambda: (self.btnD2.setStyleSheet(colores[1]), self.btnD1.setStyleSheet(colores[0]), setattr(self, "delegado", self.btnD2.text())))
+                if self.btnD1.isEnabled() and not self.btnD2.isEnabled():
+                    self.btnD1.click()
+                if self.btnD2.isEnabled() and not self.btnD1.isEnabled():
+                    self.btnD2.click()
 
-                self.btnAnotar.clicked.connect(AnotarObservacion)
+                self.btnAnotar.clicked.connect(lambda: AnotarObservacion(self.delegado))
+
             except:
-                self.btnD1.setText(self.btnD2.setText(""))
+                self.btnD1.setText("")
+                self.btnD2.setText("")
                 self.btnD1.setStyleSheet(colores[1])
                 self.btnD2.setStyleSheet(colores[1])
 
@@ -357,6 +393,6 @@ class CEPBMOON(QMainWindow):
         self.conn.close()
 
 app= QApplication(sys.argv)
-ventana= CEPBMOON()
+ventana= HistorialObservaciones()
 ventana.show()
 sys.exit(app.exec_()) 
