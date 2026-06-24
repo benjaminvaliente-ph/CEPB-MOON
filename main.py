@@ -51,22 +51,22 @@ class HistorialObservaciones(QMainWindow):
         self.cursor = self.conn.cursor()
 
         self.tabHistorial.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.tabHistorial.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.tabHistorial.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
         self.cursor.execute("""SELECT tabDelegaciones.nomDelegacion, tabDelegados.nomDelegado, tabPuntaje.descObs, tabPuntaje.puntaje FROM tabPuntaje
                                 INNER JOIN tabDelegaciones 
                                 ON tabDelegaciones.idDelegacion = tabDelegados.idDelegacion
-
                                 INNER JOIN tabDelegados
-                                ON tabDelegados.idDelegado = tabPuntaje.idDelegado""")
+                                ON tabDelegados.idDelegado = tabPuntaje.idDelegado ORDER BY nomDelegacion DESC""")
         self.conn.commit()
-
-        # self.cursor.execute("SELECT turnos FROM tabDelegaciones WHERE nomDelegacion = ?",(nompais,))
-        # turnos= self.cursor.fetchone()["turnos"]
-
-        # self.listaHistorial.insertRow(0)
-        # self.listaHistorial.setItem(0, 0, QTableWidgetItem(nompais))
-        # self.listaHistorial.setItem(0, 1, QTableWidgetItem(str(turnos)))
+        observaciones = self.cursor.fetchall()
+        for observacion in observaciones:
+            self.tabHistorial.insertRow(0)
+            self.tabHistorial.setItem(0, 0, QTableWidgetItem(observacion["nomDelegacion"]))
+            self.tabHistorial.setItem(0, 1, QTableWidgetItem(observacion["nomDelegado"]))
+            self.tabHistorial.setItem(0, 2, QTableWidgetItem(observacion["descObs"]))
+            self.tabHistorial.setItem(0, 3, QTableWidgetItem(str(observacion["puntaje"])))
 
 class CEPBMOON(QMainWindow):
     def __init__(self):
@@ -194,6 +194,10 @@ class CEPBMOON(QMainWindow):
         Registrar(txt)
 
     def Observaciones(self):
+        def AbrirHistorial():
+            self.verObservaciones = HistorialObservaciones()
+            self.verObservaciones.show()
+
         def AnotarObservacion(delegado = 0, idObs = 0, ):
             if self.delegado:
                 self.cursor.execute("""INSERT INTO tabPuntaje (idDelegado, idObs, descObs, puntaje)
@@ -239,6 +243,7 @@ class CEPBMOON(QMainWindow):
         self.txtDelegacion.setCompleter(self.completer)
 
         self.txtDelegacion.textChanged.connect(lambda: ElegirDelegado(self.txtDelegacion.text()))
+        self.btnHistorialObservaciones.clicked.connect(AbrirHistorial)
 
     def Buscador(self):              #Actualizar el buscador cuando se cambia los paises en un foro
         self.cursor.execute("SELECT nomDelegacion FROM tabDelegaciones WHERE enforo = 2")
@@ -393,6 +398,6 @@ class CEPBMOON(QMainWindow):
         self.conn.close()
 
 app= QApplication(sys.argv)
-ventana= HistorialObservaciones()
+ventana= CEPBMOON()
 ventana.show()
 sys.exit(app.exec_()) 

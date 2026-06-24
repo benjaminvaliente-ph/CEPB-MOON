@@ -32,10 +32,26 @@
       <property name="font">
        <font>
         <family>Bahnschrift Light</family>
-        <pointsize>12</pointsize>
-        <weight>50</weight>
+        <pointsize>15</pointsize>
+        <weight>6</weight>
+        <italic>false</italic>
         <bold>false</bold>
        </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">font: 50 15pt &quot;Bahnschrift Light&quot;;</string>
+      </property>
+      <property name="editTriggers">
+       <set>QAbstractItemView::NoEditTriggers</set>
+      </property>
+      <property name="tabKeyNavigation">
+       <bool>true</bool>
+      </property>
+      <property name="showDropIndicator" stdset="0">
+       <bool>false</bool>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::NoSelection</enum>
       </property>
       <attribute name="horizontalHeaderStretchLastSection">
        <bool>false</bool>
