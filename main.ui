@@ -234,7 +234,7 @@ border-radius: 15px</string>
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>640</width>
+            <width>1040</width>
             <height>541</height>
            </rect>
           </property>
@@ -285,7 +285,7 @@ color: rgb(173, 0, 40);</string>
       </property>
       <property name="maximumSize">
        <size>
-        <width>400</width>
+        <width>0</width>
         <height>16777215</height>
        </size>
       </property>
@@ -695,7 +695,7 @@ QCheckBox {
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>345</width>
+               <width>211</width>
                <height>42</height>
               </rect>
              </property>

@@ -77,91 +77,97 @@ class CEPBMOON(QMainWindow):
         self.conn.row_factory = sqlite3.Row
         self.cursor = self.conn.cursor()
 
-        self.cursor.execute("SELECT Presidente, Moderador, Secretario, Evaluador, Foro, Año FROM tabMesa")
-        mesa = self.cursor.fetchone()
-        self.delegado = ""
-        if None in mesa:
-            self.nombrarMesa = NombrarMesa(0)
-            self.nombrarMesa.setModal(True)
-            self.nombrarMesa.show()
+        self.ConectarFunciones()                        # Se llaman todas la funciones
+        self.Buscador()                                 
 
-        self.cursor.execute("SELECT nomDelegacion FROM tabDelegaciones WHERE enforo = 2")
-
-        self.paises = [fila["nomDelegacion"] for fila in self.cursor.fetchall()]
-        self.completer = QCompleter(self.paises)
-        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
-        self.txtBuscador.setCompleter(self.completer)
-        self.scrollLayout = QHBoxLayout(self.scrollAreaWidgetContents)
-        self.scrollAreaWidgetContents.setLayout(self.scrollLayout)
-        self.txtBuscador.returnPressed.connect(self.Buscar)
-        self.btnBuscar.clicked.connect(self.Buscar)
-
-        self.btn1.clicked.connect(lambda _, c=self.Configuraciones_2: self.Expandir(c))
-        self.btn2.clicked.connect(lambda _, c=self.Anotaciones_2: self.Expandir(c))
-        self.btn3.clicked.connect(lambda _, c=self.Cronometro_2: self.Expandir(c))
-        self.btn4.clicked.connect(lambda _, c=self.Historial: self.Expandir(c))
-
-        self.cerrarSideBar.clicked.connect(lambda: self.sideBar.setMaximumWidth(0))
-        self.btnLimpiar.clicked.connect(lambda: self.LimpiarLayout(self.scrollLayout))
-        self.listaForo.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.listaHistorial.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.PaisesEnForo()
+        self.NombrarMesaAlAbrir()                       
+        self.PaisesEnForo()                             
         self.DelegacionesEnForo(self.Delegados)
         self.Configuraciones()
         self.Cronometro()
         self.Observaciones()
 
-    def Buscar(self):                #Para buscar un pais y que se añada a la lista de oradores
-        txt = self.txtBuscador.text().strip()
-        if not txt or txt not in self.paises:
-            return
-        for i in range(self.scrollLayout.count()):
+    def ConectarFunciones(self):    # Conecta los botones principales con sus funciones
+        self.btn1.clicked.connect(lambda _, c=self.Configuraciones_2: self.Expandir(c))
+        self.btn2.clicked.connect(lambda _, c=self.Anotaciones_2: self.Expandir(c))
+        self.btn3.clicked.connect(lambda _, c=self.Cronometro_2: self.Expandir(c))
+        self.btn4.clicked.connect(lambda _, c=self.Historial: self.Expandir(c))
+
+        #Ajusta el layout de la fila de delegaciones
+        self.scrollLayout = QHBoxLayout(self.scrollAreaWidgetContents)
+        self.scrollAreaWidgetContents.setLayout(self.scrollLayout)
+  
+        self.cerrarSideBar.clicked.connect(lambda: self.sideBar.setMaximumWidth(0))
+        self.btnLimpiar.clicked.connect(lambda: self.LimpiarLayout(self.scrollLayout))
+        self.listaForo.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.listaHistorial.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)      
+
+    def Buscador(self):              # Actualizar el buscador cuando se cambia los paises en un foro
+        self.cursor.execute("SELECT nomDelegacion FROM tabDelegaciones WHERE enforo = 2")
+        self.delegaciones = [fila["nomDelegacion"] for fila in self.cursor.fetchall()]
+        self.completer = QCompleter(self.delegaciones)
+        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.txtBuscador.setCompleter(self.completer)
+ 
+        self.txtBuscador.returnPressed.connect(self.Buscar)
+        self.btnBuscar.clicked.connect(self.Buscar)
+
+    def NombrarMesaAlAbrir(self):    # Abre el menú para nombrar a los miembros de la mesa, primero comprueba que esté completa paa abrirlo
+        self.cursor.execute("SELECT Presidente, Moderador, Secretario, Evaluador, Foro, Año FROM tabMesa")
+        mesa = self.cursor.fetchone()
+        if None in mesa:
+            self.nombrarMesa = NombrarMesa(0)
+            self.nombrarMesa.setModal(True)
+            self.nombrarMesa.show()
+
+    def Buscar(self):                # Para buscar un pais y que se añada a la lista de oradores
+        delegacion = self.txtBuscador.text().strip()
+        if not delegacion or delegacion not in self.delegaciones:       # Termina la función si no hay una delegacion en el buscador
+            return 
+        for i in range(self.scrollLayout.count()):                      # Termina la función si la delegación ya está en la fila
             item = self.scrollLayout.itemAt(i)
             widget = item.widget()
-            if isinstance(widget, QPushButton) and widget.text() == txt:
+            if isinstance(widget, QPushButton) and widget.text() == delegacion:
                 self.txtBuscador.clear()
                 return
         
-        last_index = self.scrollLayout.count() - 1
-        if last_index >= 0:
+        last_index = self.scrollLayout.count() - 1                      # Se quita el stretch antes de añadir otra delegación a la fila.
+        if last_index >= 0:                                             # (Cuando se añade una delegacion a la fila, se pone un stretch.)
             item = self.scrollLayout.itemAt(last_index)
             if item.spacerItem():
                 self.scrollLayout.takeAt(last_index)
 
-        btn = QPushButton(txt)
+        btn = QPushButton(delegacion)
         btn.setMinimumSize(100, 100)
         btn.setMaximumSize(100, 100)
         btn.setStyleSheet('font: 10pt "Bahnschrift SemiBold"; text-align: left; background-color: rgb(255, 255, 255); border-radius: 20px; padding-left: 20px; margin-bottom: 3px;')
         btn.clicked.connect(lambda _, b=btn: self.QuitarPais(b))
+
         self.txtBuscador.clear()
         self.scrollLayout.addWidget(btn, alignment=Qt.AlignTop)
         self.scrollLayout.addStretch()
                 
-    def QuitarPais(self, pais):      #Afecta el *Historial*. Quitar un pais de la lista de oradores, registrar y cronometrarlo 
-        pais.deleteLater()
-        self.timer = QTimer()
+    def QuitarPais(self, pais):      # Afecta el *Historial*. Quitar un pais de la lista de oradores, registrar y cronometrarlo 
         def Registrar(nompais):      # Añade el pais al historial
                 self.cursor.execute("""UPDATE tabDelegaciones SET turnos = turnos + 1 WHERE nomDelegacion = ?""", (nompais,))
                 self.conn.commit()
-
                 self.cursor.execute("SELECT turnos FROM tabDelegaciones WHERE nomDelegacion = ?",(nompais,))
                 turnos= self.cursor.fetchone()["turnos"]
 
                 self.listaHistorial.insertRow(0)
                 self.listaHistorial.setItem(0, 0, QTableWidgetItem(nompais))
                 self.listaHistorial.setItem(0, 1, QTableWidgetItem(str(turnos)))
-        
-        txt = str(pais.text())
-
-        def Cronometrar(tiempo): 
+        def Cronometrar(tiempo):     # Inicia el cronómetro para las delegaciones
             def Cronometro(pais):
                 if self.time == QTime(0, 0, 0):
                     self.timer.stop()
+
                     if tiempo == "pensar":
                         Cronometrar("contestar")
                     else:
                         self.txtCronometro.setText(f"00:00")
                     return
+                
                 self.time = self.time.addSecs(-1)
                 timeDisplay = self.time.toString("mm:ss")
                 self.txtCronometro.setText(f"{timeDisplay} - {pais}")
@@ -172,44 +178,43 @@ class CEPBMOON(QMainWindow):
 
             self.cursor.execute(f"SELECT {tiempo} FROM tabTiempos")
             t = self.cursor.fetchone()
-            
             self.time = QTime(0, 0, 0)
-            self.time = self.time.addSecs(int(t[f"{tiempo}"]))      # Añadir segundos - lee de la base de datos
-            self.txtCronometro.setText(f"{self.time.toString("mm:ss")} - {txt}")
+            self.time = self.time.addSecs(int(t[f"{tiempo}"]))
+            self.txtCronometro.setText(f"{self.time.toString("mm:ss")} - {str(pais.text())}")
             try:
                 self.timer.timeout.disconnect()
             except:
                 pass
-            self.timer.timeout.connect(lambda: Cronometro(txt))
+            self.timer.timeout.connect(lambda: Cronometro(str(pais.text())))
             self.timer.start(1000)
 
-        self.txtCronometro.setText(txt)
+        pais.deleteLater()
+        self.timer = QTimer()
+
+        self.txtCronometro.setText(str(pais.text()))
         self.Lectura = QShortcut(QKeySequence("l"), self)
         self.Cuestionar = QShortcut(QKeySequence("c"), self)
         self.Contestar = QShortcut(QKeySequence("r"), self)
         self.Lectura.activated.connect(lambda: Cronometrar("leer"))
         self.Cuestionar.activated.connect(lambda: Cronometrar("cuestionar"))
         self.Contestar.activated.connect(lambda: Cronometrar("pensar"))
+        Registrar(str(pais.text()))
 
-        Registrar(txt)
-
-    def Observaciones(self):
-        def AbrirHistorial():
+    def Observaciones(self):         # Agenda las observaciones
+        def AbrirHistorial():                   # Abre el historial de observaciones
             self.verObservaciones = HistorialObservaciones()
             self.verObservaciones.show()
-
-        def AnotarObservacion(delegado = 0, idObs = 0, ):
+        def AnotarObservacion(idObs = 0, ):     # Añade la observación a la base de datos, reinicia el menú
             if self.delegado:
                 self.cursor.execute("""INSERT INTO tabPuntaje (idDelegado, idObs, descObs, puntaje)
                                     SELECT idDelegado, ?, ?, ?
                                     FROM tabDelegados
-                                    WHERE tabDelegados.nomDelegado = ?""", (idObs, self.txtObservacion.toPlainText(), self.numPuntaje.text(), self.delegado)) #Obs, puntaje, nombre elegido
+                                    WHERE tabDelegados.nomDelegado = ?""", (idObs, self.txtObservacion.toPlainText(), self.numPuntaje.text(), self.delegado))
                 self.conn.commit()
                 self.delegado=""
-                self.numPuntaje.setValue(0)
                 self.txtDelegacion.setText(self.txtObservacion.setText(""))
-
-        def ElegirDelegado(pais):               #Aca puede salir un error!
+                self.numPuntaje.setValue(0)
+        def ElegirDelegado(pais):               # Selecciona bajo que delegado se guardará la observación
             colores = ["font: 11pt 'Bahnschrift SemiLight'; background-color: #bbb; border-radius: 15px; margin-left: 5px; padding-left:5px;", "font: 11pt 'Bahnschrift SemiLight'; background-color: #ddd; border-radius: 15px; margin-left: 5px; padding-left:5px;"]
             try:
                 self.cursor.execute(f"SELECT nomDelegado FROM tabDelegados INNER JOIN tabDelegaciones ON tabDelegados.idDelegacion = tabDelegaciones.idDelegacion WHERE tabDelegaciones.nomDelegacion = ?;", (f"{pais}",))
@@ -236,23 +241,13 @@ class CEPBMOON(QMainWindow):
                 self.btnD2.setStyleSheet(colores[1])
 
         self.cursor.execute("SELECT nomDelegacion FROM tabDelegaciones WHERE enforo = 2")
-
-        self.paises = [fila["nomDelegacion"] for fila in self.cursor.fetchall()]
-        self.completerDelegacion = QCompleter(self.paises)
+        delegaciones = [fila["nomDelegacion"] for fila in self.cursor.fetchall()]
+        self.completerDelegacion = QCompleter(delegaciones)
         self.completerDelegacion.setCaseSensitivity(Qt.CaseInsensitive)
         self.txtDelegacion.setCompleter(self.completer)
 
         self.txtDelegacion.textChanged.connect(lambda: ElegirDelegado(self.txtDelegacion.text()))
         self.btnHistorialObservaciones.clicked.connect(AbrirHistorial)
-
-    def Buscador(self):              #Actualizar el buscador cuando se cambia los paises en un foro
-        self.cursor.execute("SELECT nomDelegacion FROM tabDelegaciones WHERE enforo = 2")
-        paises = [fila["nomDelegacion"] for fila in self.cursor.fetchall()]
-        modelo = QStringListModel(paises)
-        self.completer.setModel(modelo)
-        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
-        self.txtBuscador.setCompleter(self.completer)
-        self.paises = paises
 
     def PaisesEnForo(self):          # Actualizar que paises se cargarán, cargar la lista y checkboxes para seleccionar o no las delegaciones
         def PaisEnForo(state, pais): # Pone que una delegacion esté en el foro
@@ -297,7 +292,7 @@ class CEPBMOON(QMainWindow):
 
         self.txtBuscarEnForo.textChanged.connect(BuscarPais)
 
-    def LimpiarLayout(self,layout):
+    def LimpiarLayout(self,layout):  # Una cantidad sorprendente de funciones necesitan limpiar un layout   ???
             while layout.layout().count():
                 item = layout.layout().takeAt(0)
                 if item.widget():
